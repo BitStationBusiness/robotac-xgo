@@ -1,4 +1,4 @@
-# ROBOTAC XGOS V2
+# ROBOTAC XGOS
 
 Extensión educativa para controlar XGOS V2 desde MakeCode usando bloques simples.
 

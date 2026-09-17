@@ -1,7 +1,7 @@
 {
-    "name": "robotac-xgo-v2",
+    "name": "robotac-xgo",
     "version": "0.0.1",
-    "description": "Bloques simples para controlar XGOS V2 con micro:bit en MakeCode",
+    "description": "Bloques infantiles para controlar XGOS con micro:bit en MakeCode",
     "license": "MIT",
     "dependencies": {
         "core": "*",
