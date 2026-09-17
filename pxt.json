@@ -4,7 +4,8 @@
     "description": "Bloques simples para controlar XGOS V2 con micro:bit en MakeCode",
     "license": "MIT",
     "dependencies": {
-        "core": "*"
+        "core": "*",
+        "microphone": "*"
     },
     "files": [
         "main.ts",
@@ -13,9 +14,9 @@
     "testFiles": [
         "test.ts"
     ],
+    "public": true,
     "supportedTargets": [
         "microbit"
     ],
-    "preferredEditor": "blocksprj",
-    "public": true
+    "preferredEditor": "blocksprj"
 }
