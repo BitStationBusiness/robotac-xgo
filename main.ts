@@ -49,9 +49,16 @@ namespace robotac_xgos {
     const GANCHO_ABIERTO = 0
     const GANCHO_CERRADO = 196
     // Valores confirmados físicamente en el circuito final.
-    const RECORRIDO_INFANTIL_A_CM = 45
-    const RECORRIDO_INFANTIL_B_CM = 77
-    const RECORRIDO_INFANTIL_C_CM = 48
+    // Distancias físicas impresas en el circuito.
+    const RECORRIDO_INFANTIL_A_CM = 48
+    const RECORRIDO_INFANTIL_B_CM = 82
+    const RECORRIDO_INFANTIL_C_CM = 57
+    // Valores internos que ya completaron el circuito correctamente. Los
+    // factores mantienen exactamente esos tiempos, aunque los bloques para
+    // niños expresen ahora la distancia física medida con cinta métrica.
+    const ESCALA_FISICA_A = 49 / 48
+    const ESCALA_FISICA_B = 77 / 82
+    const ESCALA_FISICA_C = 41 / 57
     const CORRECCION_RECTA_A = 5
     const CORRECCION_RECTA_B = 7
     const CORRECCION_RECTA_C = 6
@@ -63,8 +70,13 @@ namespace robotac_xgos {
     const ANTICIPACION_GIRO_GRADOS = 15
     const GIRO_RECTO_GRADOS = 90
     const MAX_FALLOS_YAW = 8
-    const MAX_CORRECCIONES_GIRO = 24
+    const MAX_CORRECCIONES_GIRO = 8
     const LECTURAS_ESTABLES_REQUERIDAS = 2
+    const LECTURAS_REFERENCIA_REQUERIDAS = 3
+    const TOLERANCIA_REFERENCIA_GRADOS = 2
+    const TIEMPO_REFERENCIA_ESTABLE_MS = 1400
+    const GIRO_MAXIMO_SEGURIDAD_GRADOS = 135
+    const TIEMPO_MAXIMO_CORRECCIONES_MS = 2500
 
     enum DireccionMovimiento {
         Avanzar,
@@ -248,6 +260,35 @@ namespace robotac_xgos {
         return YAW_NO_VALIDO
     }
 
+    // Acepta una referencia únicamente cuando el robot ya está quieto. Esto
+    // descarta la deriva que puede quedar después de encenderlo o moverlo en el
+    // aire antes de pulsar el botón que inicia el programa.
+    function leerYawEstable(): number {
+        serial.readBuffer(0)
+        let inicio = input.runningTime()
+        let anterior = YAW_NO_VALIDO
+        let consecutivas = 0
+
+        while (input.runningTime() - inicio < TIEMPO_REFERENCIA_ESTABLE_MS) {
+            let actual = leerYawXGO(150)
+            if (actual == YAW_NO_VALIDO) {
+                consecutivas = 0
+            } else if (anterior == YAW_NO_VALIDO || Math.abs(diferenciaAngular(actual, anterior)) <= TOLERANCIA_REFERENCIA_GRADOS) {
+                consecutivas += 1
+                if (consecutivas >= LECTURAS_REFERENCIA_REQUERIDAS) {
+                    return actual
+                }
+            } else {
+                consecutivas = 1
+            }
+
+            anterior = actual
+            basic.pause(30)
+        }
+
+        return YAW_NO_VALIDO
+    }
+
     function posturaInicial(): void {
         enviarComando(0x3E, 0xFF)
         basic.pause(1000)
@@ -416,9 +457,12 @@ namespace robotac_xgos {
             return
         }
 
-        // Se limpia una sola vez antes de iniciar; no entre muestras.
-        serial.readBuffer(0)
-        let yawAnterior = leerYawRobusto(3, 150)
+        // La referencia se toma al ejecutar el giro, no al encender el robot.
+        // Debe permanecer estable durante varias lecturas consecutivas.
+        detenerMovimiento()
+        detenerGiro()
+        basic.pause(250)
+        let yawAnterior = leerYawEstable()
         if (yawAnterior == YAW_NO_VALIDO) {
             // Compatibilidad con firmware que no responda a la lectura de IMU.
             rumboObjetivoValido = false
@@ -432,6 +476,8 @@ namespace robotac_xgos {
         rumboObjetivoValido = true
 
         let giroMedido = 0
+        let yawMuestraAnterior = yawAnterior
+        let signoMovimientoGiro = 0
         let inicioGiro = input.runningTime()
         let velocidadLenta = Math.max(20, Math.round(velocidad * 0.35))
         // La fase final debe ser bastante más lenta que el giro principal;
@@ -443,7 +489,10 @@ namespace robotac_xgos {
 
         girarInterno(direccion, velocidadActual)
 
-        while (giroMedido < objetivoFrenado && input.runningTime() - inicioGiro < tiempoMaximoGiroImuMs) {
+        // Nunca se deja girar durante más tiempo que el necesario para cerca
+        // de 135 grados, aunque la configuración avanzada permita más tiempo.
+        let limiteTiempoGiro = Math.min(tiempoMaximoGiroImuMs, Math.max(1200, Math.round(duracion * 1.35)))
+        while (giroMedido < objetivoFrenado && giroMedido < GIRO_MAXIMO_SEGURIDAD_GRADOS && input.runningTime() - inicioGiro < limiteTiempoGiro) {
             let yawActual = leerYawRobusto(2, 90)
             if (yawActual == YAW_NO_VALIDO) {
                 fallosConsecutivos += 1
@@ -452,8 +501,19 @@ namespace robotac_xgos {
                 }
             } else {
                 fallosConsecutivos = 0
-                // Medir siempre desde el inicio evita perder grados entre lecturas.
-                giroMedido = Math.abs(diferenciaAngular(yawActual, yawAnterior))
+                // Acumular cada incremento hace que el progreso sea monotónico.
+                // La diferencia respecto al inicio se invierte tras 180 grados
+                // y era lo que permitía que un giro fallido llegara a 360 grados.
+                let incremento = diferenciaAngular(yawActual, yawMuestraAnterior)
+                yawMuestraAnterior = yawActual
+                if (Math.abs(incremento) <= 45 && Math.abs(incremento) >= 0.2) {
+                    if (signoMovimientoGiro == 0 && Math.abs(incremento) >= 1) {
+                        signoMovimientoGiro = incremento > 0 ? 1 : -1
+                    }
+                    if (signoMovimientoGiro == 0 || incremento * signoMovimientoGiro > 0) {
+                        giroMedido += Math.abs(incremento)
+                    }
+                }
 
                 let gradosRestantes = gradosImuPorGiro90 - giroMedido
                 if (gradosRestantes <= 60 && velocidadActual != velocidadLenta) {
@@ -474,7 +534,10 @@ namespace robotac_xgos {
         serial.readBuffer(0)
         let yawFinal = leerYawRobusto(3, 120)
         if (yawFinal != YAW_NO_VALIDO) {
-            giroMedido = Math.abs(diferenciaAngular(yawFinal, yawAnterior))
+            let incrementoFinal = diferenciaAngular(yawFinal, yawMuestraAnterior)
+            if (Math.abs(incrementoFinal) <= 45 && (signoMovimientoGiro == 0 || incrementoFinal * signoMovimientoGiro > 0)) {
+                giroMedido += Math.abs(incrementoFinal)
+            }
             // Registrar siempre la medicion propia de este giro, incluso si
             // ya quedo dentro de la tolerancia y no necesita correcciones.
             ultimoGiroMedido = giroMedido
@@ -493,7 +556,14 @@ namespace robotac_xgos {
         // Detectar automáticamente si el yaw aumenta o disminuye al girar a
         // la izquierda. Esto evita depender de cómo esté montada la IMU.
         let deltaMovimiento = diferenciaAngular(yawFinal, yawAnterior)
-        if (yawFinal != YAW_NO_VALIDO && Math.abs(deltaMovimiento) >= 5) {
+        if (signoMovimientoGiro != 0) {
+            let signoMovimiento = signoMovimientoGiro
+            if (direccion == DireccionGiro.Izquierda) {
+                signoYawIzquierda = signoMovimiento
+            } else {
+                signoYawIzquierda = -signoMovimiento
+            }
+        } else if (yawFinal != YAW_NO_VALIDO && Math.abs(deltaMovimiento) >= 5) {
             let signoMovimiento = 1
             if (deltaMovimiento < 0) {
                 signoMovimiento = -1
@@ -523,7 +593,8 @@ namespace robotac_xgos {
         let correcciones = 0
         let lecturasEstables = 0
         let error = diferenciaAngular(objetivoAbsoluto, yawFinal)
-        while ((Math.abs(error) > toleranciaGiroGrados || lecturasEstables < LECTURAS_ESTABLES_REQUERIDAS) && correcciones < MAX_CORRECCIONES_GIRO && fallosConsecutivos < MAX_FALLOS_YAW) {
+        let inicioCorrecciones = input.runningTime()
+        while ((Math.abs(error) > toleranciaGiroGrados || lecturasEstables < LECTURAS_ESTABLES_REQUERIDAS) && correcciones < MAX_CORRECCIONES_GIRO && fallosConsecutivos < MAX_FALLOS_YAW && input.runningTime() - inicioCorrecciones < TIEMPO_MAXIMO_CORRECCIONES_MS) {
             if (Math.abs(error) <= toleranciaGiroGrados) {
                 lecturasEstables += 1
                 basic.pause(60)
@@ -553,6 +624,9 @@ namespace robotac_xgos {
                 fallosConsecutivos = 0
                 error = diferenciaAngular(objetivoAbsoluto, yawCorregido)
                 ultimoGiroMedido = Math.abs(diferenciaAngular(yawCorregido, yawAnterior))
+                if (ultimoGiroMedido >= GIRO_MAXIMO_SEGURIDAD_GRADOS) {
+                    break
+                }
             }
             correcciones += 1
         }
@@ -1233,7 +1307,7 @@ namespace robotac_xgos {
     export function ninosAvanzarA(): void {
         asegurarXGOSInicializado()
         correccionDerechaRecta = CORRECCION_RECTA_A
-        recorridoA(RECORRIDO_INFANTIL_A_CM)
+        recorridoA(RECORRIDO_INFANTIL_A_CM * ESCALA_FISICA_A)
     }
 
     /** Ejecuta el tramo B con la distancia y la corrección ya confirmadas. */
@@ -1243,7 +1317,7 @@ namespace robotac_xgos {
     export function ninosAvanzarB(): void {
         asegurarXGOSInicializado()
         correccionDerechaRecta = CORRECCION_RECTA_B
-        recorridoB(RECORRIDO_INFANTIL_B_CM)
+        recorridoB(RECORRIDO_INFANTIL_B_CM * ESCALA_FISICA_B)
     }
 
     /** Ejecuta el tramo C con la distancia y la corrección ya confirmadas. */
@@ -1253,7 +1327,7 @@ namespace robotac_xgos {
     export function ninosAvanzarC(): void {
         asegurarXGOSInicializado()
         correccionDerechaRecta = CORRECCION_RECTA_C
-        recorridoC(RECORRIDO_INFANTIL_C_CM)
+        recorridoC(RECORRIDO_INFANTIL_C_CM * ESCALA_FISICA_C)
     }
 
     /** Despliega el brazo, abre el hocico y vuelve a recogerlo. */

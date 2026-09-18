@@ -22,8 +22,10 @@ calibración, diagnóstico y pruebas permanecen en el código para conservar la
 configuración validada, pero están ocultos de la caja de herramientas.
 
 Los tres bloques `Avanzar A`, `Avanzar B` y `Avanzar C` no necesitan números:
-incluyen respectivamente los valores confirmados de `45 cm`, `77 cm` y `48 cm`,
-además de sus correcciones rectas independientes `5`, `7` y `6`.
+representan las medidas físicas del circuito `48 cm`, `82 cm` y `57 cm`, además
+de sus correcciones rectas independientes `5`, `7` y `6`. Internamente se
+escalan a `49`, `77` y `41` unidades calibradas para conservar exactamente los
+tiempos que completaron correctamente el circuito físico.
 
 ## Detalles internos para mantenimiento
 
@@ -59,22 +61,25 @@ recto y el bloque de giro solamente rota, sin avanzar antes. El bloque
 `0` y `20 cm` sin modificar C.
 
 Cuando el modo IMU está activo, los giros de 90° solicitan el ángulo `yaw` del
-XGO por el registro `0x64`. Cada giro toma como base el `yaw` real medido al
-comenzar. De este modo, un pequeño error físico no se hereda ni se amplifica en
-el siguiente giro.
+XGO por el registro `0x64`. Cada giro detiene primero el robot y exige tres
+lecturas consecutivas estables antes de adoptar el `yaw` actual como referencia.
+Por tanto, mover o girar el robot en el aire antes de pulsar el bloque no altera
+el ángulo relativo del giro siguiente.
 
 El objetivo vuelve a ser geométricamente exacto (`90°`). La velocidad principal
 es `35`; el robot frena 15° antes, descarta las respuestas atrasadas tomadas
-durante el movimiento y valida cada pulso con una lectura nueva de la IMU. Puede
-hacer hasta 18 correcciones en ambos sentidos hasta obtener dos lecturas estables
-dentro de la tolerancia. El sentido positivo del yaw se detecta automáticamente, por lo que
+durante el movimiento y valida cada pulso con una lectura nueva de la IMU. El
+avance angular se acumula entre muestras para que no vuelva a disminuir después
+de 180°. El giro se corta por seguridad antes de 135° y admite como máximo ocho
+correcciones breves hasta obtener dos lecturas estables dentro de la tolerancia.
+El sentido positivo del yaw se detecta automáticamente, por lo que
 el montaje de la IMU no necesita una convención manual. Antes de una nueva prueba,
 alinee físicamente el perro y use `fijar rumbo actual como inicio`. Si la IMU no
 responde desde el inicio, se conserva la calibración de respaldo por tiempo.
 
 El bloque `calibrar giro físico de 90°` ajusta la relación entre la lectura de
-la IMU y el ángulo visible del cuerpo. El valor inicial es `108° IMU`; se puede
-ajustar entre `90` y `130`, de uno en uno, usando una escuadra. En modo de prueba,
+la IMU y el ángulo visible del cuerpo. El valor inicial es `97° IMU`; se puede
+ajustar entre `80` y `110`, de medio grado en medio grado, usando una escuadra. En modo de prueba,
 `último giro medido en grados` devuelve qué cambio registró el XGO y
 `mostrar código del último giro` lo deja como un patrón fijo de 8 bits en la
 matriz LED para poder fotografiarlo sin depender de texto desplazándose.
