@@ -594,7 +594,9 @@ namespace robotac_xgos {
         let lecturasEstables = 0
         let error = diferenciaAngular(objetivoAbsoluto, yawFinal)
         let inicioCorrecciones = input.runningTime()
-        while ((Math.abs(error) > toleranciaGiroGrados || lecturasEstables < LECTURAS_ESTABLES_REQUERIDAS) && correcciones < MAX_CORRECCIONES_GIRO && fallosConsecutivos < MAX_FALLOS_YAW && input.runningTime() - inicioCorrecciones < TIEMPO_MAXIMO_CORRECCIONES_MS) {
+        let yawSeguridad = yawFinal
+        let recorridoAngularTotal = giroMedido
+        while ((Math.abs(error) > toleranciaGiroGrados || lecturasEstables < LECTURAS_ESTABLES_REQUERIDAS) && correcciones < MAX_CORRECCIONES_GIRO && fallosConsecutivos < MAX_FALLOS_YAW && recorridoAngularTotal < GIRO_MAXIMO_SEGURIDAD_GRADOS && input.runningTime() - inicioCorrecciones < TIEMPO_MAXIMO_CORRECCIONES_MS) {
             if (Math.abs(error) <= toleranciaGiroGrados) {
                 lecturasEstables += 1
                 basic.pause(60)
@@ -624,7 +626,12 @@ namespace robotac_xgos {
                 fallosConsecutivos = 0
                 error = diferenciaAngular(objetivoAbsoluto, yawCorregido)
                 ultimoGiroMedido = Math.abs(diferenciaAngular(yawCorregido, yawAnterior))
-                if (ultimoGiroMedido >= GIRO_MAXIMO_SEGURIDAD_GRADOS) {
+                let incrementoSeguridad = Math.abs(diferenciaAngular(yawCorregido, yawSeguridad))
+                yawSeguridad = yawCorregido
+                if (incrementoSeguridad <= 45) {
+                    recorridoAngularTotal += incrementoSeguridad
+                }
+                if (recorridoAngularTotal >= GIRO_MAXIMO_SEGURIDAD_GRADOS) {
                     break
                 }
             }
