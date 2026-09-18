@@ -1,10 +1,11 @@
 {
     "name": "robotac-xgo",
-    "version": "0.0.1",
-    "description": "Bloques infantiles para controlar XGOS con micro:bit en MakeCode",
+    "version": "1.0.0",
+    "description": "Nueve bloques sencillos para el circuito XGO: movimiento oficial al 80 %, giros, garra y tramos.",
     "license": "MIT",
     "dependencies": {
         "core": "*",
+        "xgo": "github:elecfreaks/pxt-xgo#v1.3.9",
         "microphone": "*"
     },
     "files": [

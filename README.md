@@ -1,179 +1,55 @@
-# ROBOTAC XGOS
+# ROBOTAC Circuito para micro:bit y XGO
 
-Extensión educativa para controlar XGOS V2 desde MakeCode usando bloques simples.
+Nueve bloques para que los niños monten el circuito de la exposición. Movimiento basado en la extensión oficial ELECFREAKS XGO v1.3.9, fijada como dependencia. Se elimina del controlador activo la corrección IMU y la calibración antigua por centímetros.
 
-## Bloques visibles para los niños
+## Instalar los bloques (recomendado)
 
-Al importar este repositorio, la categoría `ROBOTAC XGOS` muestra únicamente:
+1. En https://makecode.microbit.org crea un **Nuevo proyecto**.
+2. Abre **Extensiones** y pega **https://github.com/BitStationBusiness/robotac-xgo**.
+3. Selecciona ROBOTAC. Aparecerá la categoría **ROBOTAC Circuito**.
+4. En **ROBOTAC Circuito > más**, coloca **preparar robot** en **al iniciar**. Inicializa TX P14 / RX P13, restaura postura y abre la garra. Espera a que termine antes de usar el robot.
+5. Arrastra los bloques del circuito dentro de **al presionarse el botón A**, en orden.
 
-- `Avanzar ... cm`
-- `Retroceder ... cm`
-- `Girar izquierda`
-- `Girar derecha`
-- `Avanzar A`
-- `Avanzar B`
-- `Avanzar C`
-- `Abrir hocico`
-- `Cerrar hocico`
+La dependencia oficial XGO se instala automáticamente; no hay que copiar funciones ni conocer velocidades. La categoría oficial xgo también puede aparecer, pero los niños usan ROBOTAC Circuito.
 
-El robot se inicializa automáticamente la primera vez que se utiliza cualquiera
-de estos bloques. No hace falta añadir un bloque de inicio. Los controles de
-calibración, diagnóstico y pruebas permanecen en el código para conservar la
-configuración validada, pero están ocultos de la caja de herramientas.
+**Importar > URL** abre el código del repositorio como proyecto para editar la extensión; no equivale a añadirla como biblioteca. Para obtener los nueve bloques en un proyecto nuevo usa **Extensiones**.
 
-Los tres bloques `Avanzar A`, `Avanzar B` y `Avanzar C` no necesitan números:
-representan las medidas físicas del circuito `48 cm`, `82 cm` y `57 cm`, además
-de sus correcciones rectas independientes `5`, `7` y `6`. Internamente se
-escalan a `49`, `77` y `41` unidades calibradas para conservar exactamente los
-tiempos que completaron correctamente el circuito físico.
+## Los nueve bloques
 
-## Detalles internos para mantenimiento
+| Bloque | Resultado |
+| --- | --- |
+| Avanzar [1] segundos | Avanza al 80 % y se detiene. |
+| Retroceder [1] segundos | Retrocede al 80 % y se detiene. |
+| Girar Derecha | Giro fijo: velocidad oficial 20, durante 6,8 s. |
+| Girar Izquierda | Giro fijo: velocidad oficial 20, durante 6,8 s. |
+| Coger objeto | Cierra únicamente la garra a 196; espera oficial de 3 s. |
+| Soltar objeto | Extiende el brazo, abre la garra y vuelve a la postura inicial. |
+| Tramo A | Avanza 3,3 s al 80 %. |
+| Tramo B | Avanza 5 s al 80 %. |
+| Tramo C | Avanza 3 s al 80 %. |
 
-## Unidad de movimiento
+Solo Avanzar y Retroceder tienen un campo editable. Aceptan decimales en segundos. Los tiempos no positivos o superiores a 3600 s se ignoran.
 
-Un **paso** es una unidad educativa calibrable, no la pisada individual de una
-pata ni una distancia absoluta. Por defecto dura 500 ms a una velocidad estable.
-Esto permite que el mismo programa sea fácil de leer y que el docente pueda
-ajustarlo al suelo, la batería y el peso de la pelota sin cambiar el reto de los
-niños.
+**preparar robot** es un bloque de configuración en la sección avanzada, además de los nueve bloques infantiles. La preparación se hace una sola vez por encendido; también se realiza automáticamente antes del primer bloque si se omite. Para que Coger objeto cierre únicamente la garra, prepara el robot al iniciar.
 
-En el grupo `Calibración` están los bloques:
+## Circuito de ejemplo
 
-- calibrar 1 paso a milisegundos
-- calibrar giro izquierdo de 90° (velocidad y milisegundos)
-- calibrar giro derecho de 90° (velocidad y milisegundos)
-- usar IMU en giros de 90° (activación, tolerancia y tiempo máximo)
-- compensar giro izquierdo avanzando centímetros
-- corrección recta B (ganancia y velocidad máxima)
-- calibrar brazo (posición retraída, desplegada y tiempo de espera)
-- calibrar extensión (ángulo y alcance en milímetros)
-- calibrar avance con una prueba cronometrada y una cinta métrica
-- configurar las distancias A, B y C en centímetros
+El archivo test.ts muestra: Coger objeto → Tramo A → Girar Izquierda → Tramo B → Girar Izquierda → Tramo C → Soltar objeto.
 
-Los giros izquierdo y derecho se calibran por separado porque la mecánica, el
-suelo y el peso de la pelota pueden hacerlos distintos. El rango de prueba es de
-10 a 100 de velocidad y de 100 a 5000 ms.
+Los eventos del ejemplo no se instalan al añadir la extensión: cada clase construye su programa. Ejecuta una sola secuencia a la vez; el ejemplo impide repetirla mientras está en curso. Las órdenes concurrentes dentro de una operación se ignoran, no se encolan.
 
-La compensación geométrica de `7.5 cm` se suma ahora al final de los recorridos
-A y B. De este modo, el centro del robot llega a la esquina durante el tramo
-recto y el bloque de giro solamente rota, sin avanzar antes. El bloque
-`compensar giro izquierdo avanzando ... cm` permite ajustar ese tramo entre
-`0` y `20 cm` sin modificar C.
+Los tiempos personalizados 4,5 y 2,8 s que aparecen en la captura de la sesión se pueden introducir en Avanzar; no sustituyen los valores solicitados para Tramo B (5 s) y Tramo C (3 s).
 
-Cuando el modo IMU está activo, los giros de 90° solicitan el ángulo `yaw` del
-XGO por el registro `0x64`. Cada giro detiene primero el robot y exige tres
-lecturas consecutivas estables antes de adoptar el `yaw` actual como referencia.
-Por tanto, mover o girar el robot en el aire antes de pulsar el bloque no altera
-el ángulo relativo del giro siguiente.
+## Qué se ha conservado
 
-El objetivo vuelve a ser geométricamente exacto (`90°`). La velocidad principal
-es `35`; el robot frena 15° antes, descarta las respuestas atrasadas tomadas
-durante el movimiento y valida cada pulso con una lectura nueva de la IMU. El
-avance angular se acumula entre muestras para que no vuelva a disminuir después
-de 180°. El giro se corta por seguridad antes de 135° y admite como máximo ocho
-correcciones breves hasta obtener dos lecturas estables dentro de la tolerancia.
-El sentido positivo del yaw se detecta automáticamente, por lo que
-el montaje de la IMU no necesita una convención manual. Antes de una nueva prueba,
-alinee físicamente el perro y use `fijar rumbo actual como inicio`. Si la IMU no
-responde desde el inicio, se conserva la calibración de respaldo por tiempo.
+- Marcha, giros, inicialización y garra: llamadas a https://github.com/elecfreaks/pxt-xgo.
+- Únicamente para Soltar objeto: secuencia polar de la versión anterior, dirección 200° y alcance 140 mm, espera de 3 s, apertura y repliegue. Estas dos órdenes serie quedan encapsuladas; no se exponen al alumno.
+- El repositorio publicado contiene únicamente esta versión del circuito.
 
-El bloque `calibrar giro físico de 90°` ajusta la relación entre la lectura de
-la IMU y el ángulo visible del cuerpo. El valor inicial es `97° IMU`; se puede
-ajustar entre `80` y `110`, de medio grado en medio grado, usando una escuadra. En modo de prueba,
-`último giro medido en grados` devuelve qué cambio registró el XGO y
-`mostrar código del último giro` lo deja como un patrón fijo de 8 bits en la
-matriz LED para poder fotografiarlo sin depender de texto desplazándose.
+Tramos e izquierda corresponden a la calibración indicada por el usuario. El giro derecho usa inicialmente los mismos valores invertidos; su ángulo y la secuencia de entrega deben comprobarse en el robot. Compilar o simular no verifica la distancia física. El arranque restaura la postura y abre la garra.
 
-Si `fijar rumbo actual como inicio` no puede leer la IMU, muestra `-1` cuando
-no llega ningún byte por RX o `-2` cuando llega una trama que no supera la
-validación. En ese caso el giro utiliza automáticamente el tiempo de respaldo,
-inicialmente `2050 ms`, que puede calibrarse sin alterar los recorridos A, B y C.
+## Desarrollo
 
-## Recorridos A, B y C en centímetros
+Versión 1.0.0: nueva interfaz para el circuito; los bloques anteriores de centímetros, pasos e IMU ya no están disponibles. Conserva una copia de los proyectos antiguos antes de actualizar su dependencia.
 
-Los bloques `A avanzar ... cm`, `B avanzar ... cm` y `C avanzar ... cm` solamente
-hacen avanzar al robot y ahora incluyen su propio campo numérico. Sus valores
-iniciales son 51, 84 y 52 cm. Cambiar el número de un bloque solo modifica ese
-tramo y conserva su ajuste interno de calibración.
-
-La unidad interna ideal es **milisegundos por centímetro (ms/cm)** a velocidad
-fija. Para evitar cálculos manuales, MakeCode la obtiene con dos bloques:
-
-1. Ejecute `prueba de calibración durante 3000 ms` sobre el suelo del circuito.
-2. Mida con una cinta métrica la distancia recorrida.
-3. Use `calibrar avance: en 3000 ms recorrió ... cm` con esa medición.
-4. Compruebe el resultado con `probar avance de 51 cm`.
-
-Para el ajuste fino se recomienda el bloque
-`calibrar avance preciso a ... ms por cm`. Acepta decimales entre `20.00` y
-`500.00`; en MakeCode se escriben con punto, por ejemplo `103.75`. Primero se
-prueba A, cuyo objetivo es 51 cm. Si A recorre una distancia distinta, el nuevo
-factor se obtiene con:
-
-`factor nuevo = factor actual × 51 ÷ distancia real medida`
-
-El factor actual se mantiene en `92.00 ms/cm`. Tras la prueba física, el
-recorrido A se aumentó de 46 a 51 cm y conserva su ajuste independiente de
-`100%`. El recorrido B usa ahora una distancia nominal de 84 cm con su corrección
-física independiente de `91.01%`. A y C conservan sus valores. C se había
-ajustado a `85.25%`; para añadir 2 cm pasó a `85.25 × 54 ÷ 52 = 88.53%`.
-
-Estos porcentajes se controlan con el bloque
-`ajustes: A ... % B ... % C ... %`. Modificar B o C no cambia el recorrido A.
-
-Los recorridos A, B y C conservan el rumbo con realimentación del `yaw`: toman
-como referencia la orientación inicial y aplican pequeñas correcciones mientras
-avanzan. Además usan una compensación base hacia la derecha, inicialmente `3`,
-para neutralizar la tendencia mecánica observada a desviarse a la izquierda.
-El tiempo total se mide con `runningTime`, así que las lecturas de la IMU no
-alargan la distancia ya calibrada. El bloque `corrección recta B` permite ajustar
-la ganancia entre `0` y `5` y limitar la corrección entre `5` y `30`; los valores
-iniciales son `2` y `15`.
-
-Conviene repetir la prueba con la batería cargada y la pelota colocada, porque el
-suelo, el nivel de batería y la carga pueden modificar ligeramente el resultado.
-
-## Modo de pruebas
-
-El proyecto de prueba deja los parámetros editables en `on start` y asigna:
-
-- botón A: probar giro de 90° a la izquierda
-- botón B: probar giro de 90° a la derecha
-- botones A+B: probar la entrega completa de la pelota
-- logotipo táctil: mostrar el `yaw` actual; una X indica que no hubo respuesta
-
-Cambie los números de los bloques de calibración, descargue al micro:bit y repita
-la prueba. En `Modo de pruebas` también puede mover el brazo a cualquier posición
-entre 0 y 100 y detener el robot.
-
-Para el brazo use inicialmente una espera de `3000 ms`. Es el tiempo que reserva
-la extensión oficial del XGO para cada recorrido del manipulador. Durante la
-entrega se ignoran nuevas pulsaciones hasta completar la secuencia. La retracción
-final usa la acción `255` (restaurar postura inicial), la misma orden que repliega
-correctamente el brazo al encender, en lugar de intentar reconstruir esa postura
-moviendo solamente el eje X.
-
-Antes de abrir la pinza, el bloque de entrega despliega el brazo mediante las
-coordenadas polares del XGO: `200°` y `140 mm`. Los `140 mm` son el alcance máximo
-admitido. Estos dos valores permanecen editables con el bloque `calibrar extensión`.
-
-## Uso recomendado
-
-En el botón A se puede programar una ruta únicamente con los bloques infantiles:
-
-```blocks
-Cerrar hocico
-Avanzar 45 cm
-Girar izquierda
-Avanzar 30 cm
-Abrir hocico
-```
-
-`Abrir hocico` despliega el brazo, suelta el objeto y después lo retrae. La
-inicialización se realiza automáticamente al ejecutar el primer bloque.
-
-## Pines usados
-
-* TX: P14
-* RX: P13
-* Baudrate: 115200
+Ejecutar node tests/exposicion.cjs y compilar con MakeCode/PXT. El proyecto no exige credenciales de los alumnos ni servicios externos para ejecutar el robot.
