@@ -59,3 +59,20 @@ assert.deepEqual(f.calls,[['move',0,80],['pause',1000],['move',0,0]],'Ignorar ó
 f=fixture(); f.api.tramoA();
 assert.deepEqual(f.calls,[['init',14,13],['clamp',0],['move',0,80],['pause',3300],['move',0,0]]);
 console.log('PASS: 9 operaciones, tiempos, parada, garra, tramas, inicio único y concurrencia.');
+
+// Giros temporizados: decimales, parámetros inválidos y exclusión durante movimiento.
+f=fixture(); f.api.iniciarXGOS(); f.calls.length=0;
+f.api.girarIzquierdaSegundos(2.5); f.api.girarDerechaSegundos(0.7);
+assert.deepEqual(f.calls,[['turn',0,20,2.5],['turn',1,20,0.7]]);
+for(const name of ['girarIzquierdaSegundos','girarDerechaSegundos']) {
+ for(const value of [0,-1,NaN,Infinity,3601]) {
+  f.calls.length=0; f.api[name](value); assert.deepEqual(f.calls,[]);
+ }
+}
+f.calls.length=0;
+f.setHook(()=>{f.api.girarIzquierdaSegundos(1);f.api.girarDerechaSegundos(1);});
+f.api.avanzar(1); f.setHook(null);
+assert.deepEqual(f.calls,[['move',0,80],['pause',1000],['move',0,0]]);
+f.calls.length=0; f.api.girarDerechaSegundos(1);
+assert.deepEqual(f.calls,[['turn',1,20,1]],'Se libera el bloqueo al terminar');
+console.log('PASS: giros por segundos en ambos sentidos.');

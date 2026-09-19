@@ -64,6 +64,26 @@ namespace robotac_xgos {
         ocupado = false
     }
 
+    function girarPorTiempo(segundos: number, direccion: xgo.rotate_direction_enum): void {
+        if (!(segundos > 0 && segundos <= 3600) || !comenzar()) return
+        xgo.rotate_angle_continue(direccion, 20, segundos)
+        ocupado = false
+    }
+
+    /** Gira a la izquierda durante los segundos indicados y se detiene. Velocidad interna 20. */
+    //% block="Girar Izquierda %segundos segundos" group="Movimiento" weight=68
+    //% segundos.defl=1 segundos.min=0 segundos.max=3600
+    export function girarIzquierdaSegundos(segundos: number): void {
+        girarPorTiempo(segundos, xgo.rotate_direction_enum.turn_left)
+    }
+
+    /** Gira a la derecha durante los segundos indicados y se detiene. Velocidad interna 20. */
+    //% block="Girar Derecha %segundos segundos" group="Movimiento" weight=66
+    //% segundos.defl=1 segundos.min=0 segundos.max=3600
+    export function girarDerechaSegundos(segundos: number): void {
+        girarPorTiempo(segundos, xgo.rotate_direction_enum.turn_right)
+    }
+
     /** Tras preparar el robot, solo cierra la garra; no desplaza el brazo ni camina. */
     //% block="Coger objeto" group="Garra" weight=60
     export function cogerObjeto(): void {

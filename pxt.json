@@ -1,7 +1,7 @@
 {
     "name": "robotac-xgo",
-    "version": "1.0.0",
-    "description": "Nueve bloques sencillos para el circuito XGO: movimiento oficial al 80 %, giros, garra y tramos.",
+    "version": "1.1.0",
+    "description": "Once bloques sencillos para el circuito XGO: movimiento oficial al 80 %, giros, garra y tramos.",
     "license": "MIT",
     "dependencies": {
         "core": "*",

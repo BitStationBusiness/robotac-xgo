@@ -2,6 +2,7 @@ const fs = require('node:fs');
 require('../node_modules/pxt-core/built/pxt');
 pxt.setAppTarget(require('../node_modules/pxt-microbit/pxtarget.json'));
 const fileSystem={'main.ts':fs.readFileSync('test.ts','utf8'),'robot.ts':fs.readFileSync('main.ts','utf8')};
+fileSystem['main.ts'] += '\ninput.onButtonPressed(Button.B, function () { robotac_xgos.girarIzquierdaSegundos(2.5); robotac_xgos.girarDerechaSegundos(0.7); })';
 for (const pkg of fs.readdirSync('pxt_modules')) {
  const dir='pxt_modules/'+pkg+'/';
  if (!fs.existsSync(dir+'pxt.json')) continue;
@@ -13,6 +14,9 @@ const result=ts.pxtc.decompile(ts.pxtc.getTSProgram(opts),opts,'main.ts');
 if(!result.success)throw Error(JSON.stringify(result.diagnostics));
 const xml=result.outfiles['main.blocks'];
 if(xml.includes('typescript_statement')||xml.includes('typescript_expression'))throw Error('Bloques grises en el ejemplo');
+for (const name of ['girarIzquierdaSegundos', 'girarDerechaSegundos']) {
+ if (!xml.includes('robotac_xgos_' + name)) throw Error('Falta bloque ' + name);
+}
 fs.mkdirSync('built',{recursive:true});
 fs.writeFileSync('built/ejemplo.blocks',xml);
 console.log('PASS: ejemplo convertido a bloques nativos sin bloques grises.');
