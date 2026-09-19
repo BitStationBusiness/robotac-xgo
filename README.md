@@ -21,7 +21,7 @@ La dependencia oficial XGO se instala automáticamente; no hay que copiar funcio
 | Avanzar [1] segundos | Avanza al 80 % y se detiene. |
 | Retroceder [1] segundos | Retrocede al 80 % y se detiene. |
 | Girar Derecha | Giro fijo: velocidad oficial 20, durante 6,8 s. |
-| Girar Izquierda | Giro fijo: velocidad oficial 20, durante 6,8 s. |
+| Girar Izquierda | Giro fijo: velocidad oficial 20, durante 6,5 s. |
 | Girar Izquierda [1] segundos | Gira a la izquierda el tiempo indicado, con velocidad interna 20, y se detiene. |
 | Girar Derecha [1] segundos | Gira a la derecha el tiempo indicado, con velocidad interna 20, y se detiene. |
 | Coger objeto | Cierra únicamente la garra a 196; espera oficial de 3 s. |
@@ -30,7 +30,7 @@ La dependencia oficial XGO se instala automáticamente; no hay que copiar funcio
 | Tramo B | Avanza 5 s al 80 %. |
 | Tramo C | Avanza 3 s al 80 %. |
 
-Avanzar, Retroceder y los dos nuevos giros por segundos tienen un campo editable. Los giros fijos conservan sus 6,8 segundos. Aceptan decimales en segundos. Los tiempos no positivos o superiores a 3600 s se ignoran.
+Avanzar, Retroceder y los dos giros por segundos tienen un campo editable. El giro fijo izquierdo dura 6,5 segundos y el derecho 6,8 segundos. Los bloques con tiempo editable aceptan decimales en segundos. Los tiempos no positivos o superiores a 3600 s se ignoran.
 
 **preparar robot** es un bloque de configuración en la sección avanzada, además de los once bloques infantiles. La preparación se hace una sola vez por encendido; también se realiza automáticamente antes del primer bloque si se omite. Para que Coger objeto cierre únicamente la garra, prepara el robot al iniciar.
 
@@ -51,6 +51,8 @@ Los tiempos personalizados 4,5 y 2,8 s que aparecen en la captura de la sesión 
 Tramos e izquierda corresponden a la calibración indicada por el usuario. El giro derecho usa inicialmente los mismos valores invertidos; su ángulo y la secuencia de entrega deben comprobarse en el robot. Compilar o simular no verifica la distancia física. El arranque restaura la postura y abre la garra.
 
 ## Desarrollo
+
+Versión 1.1.1: ajusta el giro izquierdo fijo a 6,5 segundos según la prueba física del circuito.
 
 Versión 1.1.0: añade giros por segundos en ambos sentidos sin cambiar los bloques existentes.
 

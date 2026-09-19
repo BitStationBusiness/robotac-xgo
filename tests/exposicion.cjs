@@ -40,7 +40,7 @@ for(const v of [0,-1,NaN,Infinity,3601]) {
     f.calls.length=0; f.api.avanzar(v); assert.deepEqual(f.calls,[]);
 }
 f.calls.length=0; f.api.girarIzquierda(); f.api.girarDerecha();
-assert.deepEqual(f.calls,[['turn',0,20,6.8],['turn',1,20,6.8]]);
+assert.deepEqual(f.calls,[['turn',0,20,6.5],['turn',1,20,6.8]]);
 f.calls.length=0; f.api.cogerObjeto();
 assert.deepEqual(f.calls,[['clamp',196]],'Coger no debe mover brazo ni cuerpo después de preparar');
 f.calls.length=0; f.api.soltarObjeto();

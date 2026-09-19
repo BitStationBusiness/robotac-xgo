@@ -56,11 +56,11 @@ namespace robotac_xgos {
         ocupado = false
     }
 
-    /** Giro izquierdo calibrado para el circuito: 20 durante 6,8 segundos. */
+    /** Giro izquierdo calibrado para el circuito: 20 durante 6,5 segundos. */
     //% block="Girar Izquierda" group="Movimiento" weight=70
     export function girarIzquierda(): void {
         if (!comenzar()) return
-        xgo.rotate_angle_continue(xgo.rotate_direction_enum.turn_left, 20, 6.8)
+        xgo.rotate_angle_continue(xgo.rotate_direction_enum.turn_left, 20, 6.5)
         ocupado = false
     }
 
